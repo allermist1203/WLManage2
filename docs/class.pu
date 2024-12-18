@@ -1,0 +1,52 @@
+@startuml "クラス図"
+
+abstract class "Model"{
+}
+
+class "Match"{
+    +int id
+    +Date date
+    +int tagId
+    +MatchType matchType
+    +String note
+}
+"Model" <|-- "Match"
+
+class "Game"{
+    +int id
+    +int matchId
+    +FirstPlayer firstPlayer
+    +WinLose result
+    +int myDeckId
+    +int enemyDeckId
+}
+"Model" <|-- "Game"
+
+class "Deck"{
+    +int id
+    +String name
+}
+"Model" <|-- "Deck"
+
+class "Tag"{
+    +int id
+    +String name
+}
+"Model" <|-- "Tag"
+
+enum MatchType{
+    BO1
+    BO3
+}
+
+enum WinLose{
+    WIN
+    LOSE
+}
+
+enum FirstPlayer{
+    myself
+    enemy
+}
+
+@enduml

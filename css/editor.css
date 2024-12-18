@@ -1,0 +1,54 @@
+
+.formParts{
+    padding-bottom: 10px;
+    border-bottom: 2px solid grey;
+    margin: 10px 10px 0px 10px;
+}
+
+.formParts:last-child{
+    border-bottom: none !important;
+}
+
+.field{
+    padding: 2px 0px;
+}
+
+.formParts > .field:first-child {
+    padding-top: 0px !important;
+}
+
+.inputArea{
+    display: flex;
+    align-items: center;
+}
+
+.triangle {
+    display: inline-block;
+    background: white;
+    height: calc(tan(60deg) * 15px / 2);
+    width: 15px;
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    margin: 0px 5px;
+}
+
+.candidatePanel{
+    position: absolute;
+    bottom: 0px;
+    left: 0px;
+    right: 0px;
+    max-height: 80%;
+    background-color: rgba(64,64,64,1);
+    overflow: scroll;
+}
+
+.candidatePanel > .label {
+    vertical-align: middle;
+    margin: 3px 10px;
+    border-bottom: 1px solid gray;
+}
+
+.door_bar {
+    margin: 3px 10% 10px 10%;
+    border: 3px solid gray;
+    border-radius: 5px;
+}

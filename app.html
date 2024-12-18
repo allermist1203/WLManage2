@@ -1,0 +1,33 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>勝敗管理</title>
+    <meta name="description" content="" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1 maximum-scale=1.0, user-scalable=no"
+    />
+    <link type="text/css" rel="stylesheet" href="./css/app.css" />
+    <link type="text/css" rel="stylesheet" href="./css/common.css" />
+    <link type="text/css" rel="stylesheet" href="./css/editor.css" />
+    <link type="text/css" rel="stylesheet" href="./css/list.css" />
+    <link type="text/css" rel="stylesheet" href="./css/settings.css" />
+    <script src="https://code.jquery.com/jquery-1.12.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script type="module" src="./src/app.js"></script>
+  </head>
+
+  <body>
+    <div id="header" class="pillar">
+      <select id="game_selector" class="label"></select>
+    </div>
+    <div id="content"></div>
+    <div id="footer" class="pillar">
+      <input id="mode" type="hidden" data-id="" value="" />
+    </div>
+    <div id="loading" class="display_lock" style="display: none">
+      <div></div>
+    </div>
+  </body>
+</html>
