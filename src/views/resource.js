@@ -23,7 +23,7 @@ export const RESOURCE = Object.freeze({
     LABEL_SECOND_PLAYER_SHORT: '後',
     BTN_RESTORE: '出力',
     BTN_BACKUP: '復元',
-    LABEL_BACKUP_RESTORE: 'バックアップ・リストア',
+    LABEL_BACKUP_RESTORE: '機種変更',
 });
 
 export const VALID_ERR = Object.freeze({

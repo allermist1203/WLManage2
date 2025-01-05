@@ -113,9 +113,9 @@ export class Model{
         }
     }
 
-    static async selectAll() {
+    static async selectAll( orderbyFunc = null) {
         var filterFunc = (record) => { return true; };
-        return this.select(filterFunc);
+        return this.select(filterFunc,orderbyFunc);
     }
 
     static async selectOne( filterFunc) {
@@ -125,8 +125,8 @@ export class Model{
         return modelData;
     }
 
-    static async select( filterFunc) {
-        var datas = await DB_ACCESS.getDatas((new this).tableName,filterFunc);
+    static async select( filterFunc, orderbyFunc = null) {
+        var datas = await DB_ACCESS.getDatas((new this).tableName,filterFunc,orderbyFunc);
         var modelDatas = new Array();
         datas.forEach(data => {
             var modelData = new this({isSelectedData:true});

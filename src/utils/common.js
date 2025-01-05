@@ -110,6 +110,18 @@ export function changeAppMode(nextAppMode){
     $('#mode').change();
 }
 
+export function getAppMode(nextAppMode){
+    return $('#mode').val();
+}
+
+export function setAppModeDataId( dataId) {
+    $('#mode').data('id', dataId);
+}
+
+export function getAppModeDataId() {
+    return $('#mode').data('id');
+}
+
 export function hide( dom, slide = false, down=false, callbackFunc = () =>{}) {
     if (slide && down) dom.slideDown(callbackFunc());
     else if(slide && !down) dom.slideUp(callbackFunc());

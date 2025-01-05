@@ -212,7 +212,7 @@ class DBAccess{
         this.#clear();
     }
 
-    async getDatas(tableName, filterFunc = (record) => {return true}) {
+    async getDatas(tableName, filterFunc = (record) => {return true}, orderFunc = null) {
         var request, cursor;
         var results = new Array();
         var complateFlag = {'request': false,};
@@ -249,6 +249,8 @@ class DBAccess{
                 if (filterFunc(record))
                     results.push(record);
             });
+        if (orderFunc != null)
+            results.sort(orderFunc)
         return results;
     }
 

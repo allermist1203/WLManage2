@@ -23,7 +23,8 @@ export const MATCHINFO_MODE = Object.freeze({
 });
 
 export const APP_MODE = Object.freeze({
-    NEW : 'new',
+    NEW: 'new',
+    UPDATE: 'update',
     LIST: 'list',
     SETTINGS: 'setting',
 });

@@ -24,7 +24,7 @@ export async function registMatchAndGames(matchInfo, gameInfos) {
 
 async function registMatch({ id = '', date = '', tag = '', matchType = '', note = '' }) {
     console.log('registMatch', id, date, tag, matchType, note);
-    var match = await Match.selectOne((record) => { return record.matchId == id; });
+    var match = await Match.selectOne((record) => { return record.id == id; });
     if (match == null) match = new Match();
     match.date.value = date;
     match.tagId.value = await getOrCreateTagId(tag);
@@ -66,27 +66,7 @@ async function getOrCreateDeckId( deckName) {
     return deck.id.value;
 }
 
-export async function getAllMatchDatas() {
-    var selectTargets = [Match, Game, Deck, Tag,];
-    var selectResults = {};
-    var complateFlags = {};
-    selectTargets.forEach(selectTarget => {
-        complateFlags[selectTarget.name] = false;
-    });
-    // 時間短縮のため並列でデータ取得
-    selectTargets.forEach(selectTarget => {
-        var prop = selectTarget.name;
-        selectTarget.selectAll().then(records => {
-            selectResults[prop] = records;
-            complateFlags[prop] = true;
-        });
-    });
-    await waitReady(
-        DB_ACCESS.timeout * selectTargets.length,
-        DB_ACCESS.maxWaitLoop * selectTargets.length,
-        (complateFlags) => { return !isAllTrueForDict(complateFlags); },
-        complateFlags
-    );
+function formattingMatchDatas(selectResults) {
     var decks = selectResults[Deck.name];
     // データ結合処理
     var matchDatas = new Array();
@@ -119,17 +99,63 @@ export async function getAllMatchDatas() {
     return matchDatas;
 }
 
+async function getDBDatas(selectTargets, orderbyFuncs = {}) {
+    var selectResults = {};
+    var complateFlags = {};
+    selectTargets.forEach(selectTarget => {
+        complateFlags[selectTarget.name] = false;
+    });
+    // 時間短縮のため並列でデータ取得
+    selectTargets.forEach(selectTarget => {
+        var orderbyFunc = null;
+        var prop = selectTarget.name;
+        if (Object.keys(orderbyFuncs).includes(prop))
+            orderbyFunc = orderbyFuncs[prop];
+        selectTarget.selectAll(orderbyFunc).then(records => {
+            selectResults[prop] = records;
+            complateFlags[prop] = true;
+        });
+    });
+    await waitReady(
+        DB_ACCESS.timeout * selectTargets.length,
+        DB_ACCESS.maxWaitLoop * selectTargets.length,
+        (complateFlags) => { return !isAllTrueForDict(complateFlags); },
+        complateFlags
+    );
+    return selectResults;
+}
+
+export async function getAllMatchDatas() {
+    return formattingMatchDatas(
+        await getDBDatas(
+            [Match, Game, Deck, Tag,],
+            { Match: (a, b) => { return (new Date(b.date)) - (new Date(a.date)); }}
+        )
+    );
+}
+
+export async function getMatchData( matchId) {
+    var decksAndTags = await getDBDatas([Deck, Tag,]);
+    var matchAndGames = await getMatchAndGames(matchId);
+    return formattingMatchDatas({
+        [Match.name]: [matchAndGames[Match.name]],
+        [Game.name]: matchAndGames[Game.name],
+        [Tag.name]: decksAndTags[Tag.name],
+        [Deck.name]: decksAndTags[Deck.name],
+    })[0];
+}
+
 async function getMatchAndGames(matchId) {
     return {
-        match: await Match.selectOne(record => { return record.id == matchId }),
-        games: await Game.select(record => { return record.matchId == matchId }),
+        [Match.name]: await Match.selectOne(record => { return record.id == matchId }),
+        [Game.name]: await Game.select(record => { return record.matchId == matchId }),
     };
 }
 
 export async function deleteMatchAndGames(matchId) {
     var datas = await getMatchAndGames(matchId);
-    datas.match.delete();
-    datas.games.forEach(game => {
+    datas[Match.name].delete();
+    datas[Game.name].forEach(game => {
         game.delete();
     });
     await DB_ACCESS.commit();

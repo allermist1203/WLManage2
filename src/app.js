@@ -1,7 +1,7 @@
 
 import { GAMES, APP_MODE } from './utils/enums.js'
-import { initializeModels, getAllMatchDatas } from './utils/controler.js'
-import { waitReady, isAllTrueForDict, startLoading, endLoading, changeAppMode } from './utils/common.js'
+import { initializeModels, getAllMatchDatas, getMatchData } from './utils/controler.js'
+import { waitReady, isAllTrueForDict, startLoading, endLoading, changeAppMode, getAppModeDataId } from './utils/common.js'
 import { MatchInfo } from './views/MatchInfo.js'
 import { MatchInfoList } from './views/MatchInfoList.js'
 import { Settings } from './views/Settings.js'
@@ -31,17 +31,17 @@ $('#mode').ready(() => {
 });
 
 $('#footer').ready(() => {
-    const MODES = [
+    const MENU = [
         {'label':RESOURCE.APP_MODE_NEW, 'value':APP_MODE.NEW},
         {'label':RESOURCE.APP_MODE_LIST, 'value':APP_MODE.LIST},
         {'label':RESOURCE.APP_MODE_SETTINGS, 'value':APP_MODE.SETTINGS},
     ]
-    MODES.forEach(mode => {
-        var menu = $(`<div class="label menu" data-mode="${mode.value}">${mode.label}</div>`);
-        menu.on('click', { newMode: mode.value }, (event => {
+    MENU.forEach(menu => {
+        var menuDom = $(`<div class="label menu" data-mode="${menu.value}">${menu.label}</div>`);
+        menuDom.on('click', { newMode: menu.value }, (event => {
             changeAppMode(event.data.newMode);
         }));
-        $('#footer').append(menu);
+        $('#footer').append(menuDom);
     });
 });
 
@@ -53,6 +53,7 @@ async function loadContent(game, mode) {
     initializeModels(game).then(() => {
         switch (mode) {
             case APP_MODE.NEW:
+            case APP_MODE.UPDATE:
                 viewComplates[mode] = false;
                 loadEditorForm(mode).then(() => {
                     viewComplates[mode] = true;
@@ -71,6 +72,7 @@ async function loadContent(game, mode) {
             case APP_MODE.SETTINGS:
                 content = new Settings();
                 $('#content').prepend(content.view);
+                break;
             default:
                 break;
         }
@@ -85,13 +87,40 @@ async function loadContent(game, mode) {
     });
 }
 
-async function loadEditorForm( mode) {
-    // 新規登録なのでフォームのIDには0を登録
-    var content = new MatchInfo(
-        mode, '0', ['0', '1', '2'],
-        await createTagCandidates(),
-        await createDeckCandidates()
-    );
+async function loadEditorForm(mode) {
+    var content, tagCandidatesView, deckCandidatesView;
+    var viewComplates = { tag: false, deck: false };
+    createTagCandidates().then(data => {
+        tagCandidatesView = data;
+        viewComplates.tag = true;
+    });
+    createDeckCandidates().then(data => {
+        deckCandidatesView = data;
+        viewComplates.deck = true;
+    });
+    await waitReady(
+        20, 20,
+        (viewComplates) => { return !isAllTrueForDict(viewComplates); },
+        viewComplates
+    )
+    switch (mode) {
+        case APP_MODE.NEW:
+            // 新規登録なので既存データと絶対に重複しないIDを入れておく
+            content = new MatchInfo(
+                mode, APP_MODE.NEW, [],
+                tagCandidatesView, deckCandidatesView
+            );
+            break;
+        case APP_MODE.UPDATE:
+            // 編集モードではリストは1個
+            content = MatchInfo.createMatchInfo(
+                await getMatchData(getAppModeDataId()), mode, '1',
+                tagCandidatesView, deckCandidatesView
+            );
+            break;
+        default:
+            break;
+    }
     $('#content').prepend(content.editorForm);
 }
 

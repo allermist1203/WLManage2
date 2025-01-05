@@ -3,7 +3,7 @@ import { RESOURCE, MESSAGE } from './resource.js'
 import { InputField, DateField, RadioInput, UpdateButton, DestroyButton, ButtonList } from './Fields.js'
 import { GameInfo } from './GameInfo.js'
 import { MatchType, WinLose, APP_MODE } from './../utils/enums.js'
-import { dictMax, dictMin, watchValue, changeAppMode, dialog, confirm, startLoading, endLoading } from './../utils/common.js'
+import { dictMax, dictMin, watchValue, changeAppMode, dialog, confirm, startLoading, endLoading, getAppMode, setAppModeDataId, today, toLocaleDateString } from './../utils/common.js'
 import { registMatchAndGames, deleteMatchAndGames } from './../utils/controler.js'
 
 export class MatchInfo {
@@ -16,27 +16,39 @@ export class MatchInfo {
     #watchValues = {}
     #editorForm = null;
     #matchType = MatchType.BO1;
-    #date;
-    #tag;
-    #note;
+    #date = today();
+    #tag = '';
+    #note = '';
     #listId;
     #tagCandidatesView;
+    #deckCandidatesView;
 
     constructor(areaId, matchId, gameIds, tagCandidatesView=null, deckCandidatesView=null) {
+        console.log('newMatchInfo', areaId, matchId, gameIds);
         this.#areaId = areaId;
         this.#matchId = matchId;
         this.#tagCandidatesView = tagCandidatesView;
+        this.#deckCandidatesView = deckCandidatesView;
+        // マッチに紐づいているゲームデータの挿入
         gameIds.forEach(gameId => {
             this.#gameInfos.push(new GameInfo(gameId, this.#watchValues, deckCandidatesView));
-            watchValue(this.#watchValues, GameInfo.name, this.winLoseChanged, this);
         });
+        watchValue(this.#watchValues, GameInfo.name, this.winLoseChanged, this);
     }
 
     get editorForm() {
         if (this.#editorForm == null) {
             this.#editorForm = $(`<div></div>`);
             this.#editorForm.append(this.matchForm);
-            this.gameInfos.forEach(gameInfo => {
+            var nShortageGameInfos = MatchType.BO3 - this.#gameInfos.length;
+            //　最大ゲーム数までゲームの入力欄生成
+            for (var i = 0; i < nShortageGameInfos; i++){
+                this.#gameInfos.push(new GameInfo(
+                    `new_${i}`, this.#watchValues,
+                    this.#deckCandidatesView
+                ));
+            }
+            this.#gameInfos.forEach(gameInfo => {
                 this.#editorForm.append(gameInfo.gameForm);
             });
             var registBtn = new UpdateButton(`${this.#areaId}_Regist`,RESOURCE.BTN_REGIST);
@@ -45,7 +57,7 @@ export class MatchInfo {
             btns.append(registBtn.dom);
             this.#editorForm.append(btns);
             // 初期設定後に画面表示切り替え
-            this.gameInfosOpenAndHide(this.#matchType, MatchInfo.maxGames - 1);
+            this.winLoseChanged(this);
         }
         return this.#editorForm;
     }
@@ -90,6 +102,7 @@ export class MatchInfo {
     }
     get #newDateInput() {
         var dom = new DateField(this.#createNameTag('date'), '', true);
+        dom.val = this.#date;
         return dom;
     }
     get #newTagInput() {
@@ -98,6 +111,7 @@ export class MatchInfo {
             RESOURCE.LABEL_TAG, true, [],
             this.#tagCandidatesView
         );
+        dom.val = this.#tag;
         return dom;
     }
     get #newMatchTypeInput() {
@@ -106,7 +120,7 @@ export class MatchInfo {
             { val:MatchType.BO3, label:RESOURCE.LABEL_BO3_MATCH },
         ]
         var dom = new RadioInput(this.#createNameTag('matchType'), matchTypeChoices);
-        dom.val = MatchType.BO1;
+        dom.val = this.#matchType;
         var eventParams = { editor: this, matchTypeInput: dom, }
         dom.setEvent('change', eventParams, this.matchTypeClick);
         return dom;
@@ -116,6 +130,7 @@ export class MatchInfo {
             this.#createNameTag('note'), 'text',
             RESOURCE.LABEL_NOTE , false
         );
+        dom.val = this.#note;
         return dom;
     }
     createMatchInputs() {
@@ -143,7 +158,6 @@ export class MatchInfo {
     }
 
     gameInfosHide(startIdx, endIdx) {
-        console.log('gameInfosHide', startIdx, endIdx);
         for (var i = startIdx; i <= endIdx; i++)
             this.#gameInfos[i].hideForm();
     }
@@ -161,17 +175,20 @@ export class MatchInfo {
             startLoading();
             var matchFormVals = editor.matchFormVals;
             var gameFormVals = editor.gameFormVals;
+            var nextAppMode = getAppMode();
+            if (nextAppMode == APP_MODE.UPDATE)
+                nextAppMode = APP_MODE.LIST;
             registMatchAndGames(matchFormVals, gameFormVals)
                 .then(() => {
                     endLoading();
                     dialog(MESSAGE.DEAL_OK, () => {
-                        changeAppMode(APP_MODE.NEW);
+                        changeAppMode(nextAppMode);
                     });
                 }).catch((error) => {
                     console.error(error);
                     endLoading();
                     dialog(MESSAGE.DEAL_NG, () => {
-                        changeAppMode(APP_MODE.NEW);
+                        changeAppMode(nextAppMode);
                     });
                 })
         }
@@ -205,6 +222,7 @@ export class MatchInfo {
     setMatchInfo(matchData,listId='') {
         this.#listId = listId;
         this.#matchType = matchData.matchType;
+        this.#date = toLocaleDateString(new Date(matchData.date));
         this.#tag = matchData.tag;
         this.#note = matchData.note;
         for (var i = 0; i < this.#gameInfos.length; i++){
@@ -217,10 +235,10 @@ export class MatchInfo {
         }
     }
 
-    static createMatchInfo(matchData,areaMode,listId='') {
-        var areaId = `${areaMode}_${matchData.id}`
+    static createMatchInfo(matchData,areaMode,listId='', tagCandidatesView=null, deckCandidatesView=null) {
+        var areaId = `${areaMode}_${matchData.id}`;
         var gameIds = matchData.games.map(gameInfo => { return gameInfo.id; });
-        var matchInfo = new MatchInfo(areaId,matchData.id,gameIds);
+        var matchInfo = new MatchInfo(areaId,matchData.id,gameIds,tagCandidatesView,deckCandidatesView);
         matchInfo.setMatchInfo(matchData,listId);
         return matchInfo;
     }
@@ -253,7 +271,8 @@ export class MatchInfo {
     }
 
     editBtnClick(event) {
-        
+        setAppModeDataId(event.data.matchId);
+        changeAppMode(APP_MODE.UPDATE);
     }
 
     deleteBtnClick(event) {

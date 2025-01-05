@@ -3,7 +3,6 @@ import { RESOURCE } from './resource.js'
 import { InputField, RadioInput } from './Fields.js'
 import { WinLose, FirstPlayer } from '../utils/enums.js'
 import { hide, show} from '../utils/common.js'
-import { registMatchAndGames, deleteMatchAndGames } from '../utils/controler.js'
 
 
 export class GameInfo{
